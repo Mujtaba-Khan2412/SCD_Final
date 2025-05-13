@@ -7,20 +7,20 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: server
+      app: mern-server
   template:
     metadata:
       labels:
-        app: server
+        app: mern-server
     spec:
       containers:
-        - name: server
-          image: mern-server:latest
-          imagePullPolicy: Never # Use local image since we're using Minikube
+        - name: mern-server
+          image: mujtaba979/mern-server:latest
+          imagePullPolicy: Always
           env:
             - name: PORT
               value: "5000"
-            - name: MONGO_URI
-              value: "mongodb+srv://mujtaba979mk:mujtaba@cluster0.8q8n8.mongodb.net/"
+            - name: MONGODB_URI
+              value: "mongodb://mongodb-service:27017/mernapp"
           ports:
             - containerPort: 5000

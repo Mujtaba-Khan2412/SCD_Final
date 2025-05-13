@@ -7,15 +7,18 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: client
+      app: mern-client
   template:
     metadata:
       labels:
-        app: client
+        app: mern-client
     spec:
       containers:
-        - name: client
-          image: mern-client:latest
-          imagePullPolicy: Never # Use local image since we're using Minikube
+        - name: mern-client
+          image: mujtaba979/mern-client:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
+          env:
+            - name: REACT_APP_API_URL
+              value: "http://server-service:5000"
