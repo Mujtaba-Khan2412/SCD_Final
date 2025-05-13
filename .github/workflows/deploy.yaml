@@ -13,6 +13,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: List directories to debug
+        run: |
+          ls -la
+
+      - name: Enhanced debugging
+        run: |
+          echo "Current directory contents:"
+          ls -la
+          echo "Repository root structure:"
+          ls -la
+          echo "Check for server directory:"
+          if (Test-Path -Path "server") { echo "server directory exists" } else { echo "server directory NOT found" }
+          if (Test-Path -Path "app/server") { echo "app/server directory exists" } else { echo "app/server directory NOT found" }
+          echo "Check for client directory:"
+          if (Test-Path -Path "client") { echo "client directory exists" } else { echo "client directory NOT found" }
+          if (Test-Path -Path "app/client") { echo "app/client directory exists" } else { echo "app/client directory NOT found" }
+          echo "Check for k8s directory:"
+          if (Test-Path -Path "k8s") { echo "k8s directory exists" } else { echo "k8s directory NOT found" }
+
       - name: Set up Docker to use Minikube's environment
         run: |
           echo "Configuring Docker to use Minikube's daemon..."
@@ -20,12 +39,12 @@ jobs:
 
       - name: Build Server Docker image
         run: |
-          cd server
+          cd server  # Changed from 'app/server' to 'server'
           docker build -t mujtaba979/mern-server:latest .
 
       - name: Build Client Docker image
         run: |
-          cd client
+          cd client  # Changed from 'app/client' to 'client'
           docker build -t mujtaba979/mern-client:latest .
 
       - name: Login to Docker Hub
