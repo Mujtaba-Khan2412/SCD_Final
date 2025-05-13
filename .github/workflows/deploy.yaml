@@ -1,54 +1,53 @@
 name: Build and Deploy to Minikube
+
 on:
   push:
     branches:
       - main
 
 jobs:
-  deploy:
+  build-deploy:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Start Minikube if not running
+      - name: Set up Docker to use Minikube's environment
         run: |
-          if ($(minikube status -f '{{.Host}}') -ne "Running") {
-            minikube start
-          }
+          echo "Configuring Docker to use Minikube's daemon..."
+          & minikube -p minikube docker-env --shell powershell | Invoke-Expression
 
-      - name: Set Docker to use Minikube
+      - name: Build Server Docker image
         run: |
-          & minikube -p minikube docker-env | Invoke-Expression
+          cd server
+          docker build -t mujtaba979/mern-server:latest .
 
-      - name: Build Client Docker Image
-        run: docker build --platform=linux/amd64 -t mern-client:latest ./app/client
-
-      - name: Build Server Docker Image
-        run: docker build --platform=linux/amd64 -t mern-server:latest ./app/server
-
-      - name: Create namespace if it doesn't exist
+      - name: Build Client Docker image
         run: |
-          if (-not (kubectl get namespace mern-app --ignore-not-found)) {
-            kubectl create namespace mern-app
-          }
+          cd client
+          docker build -t mujtaba979/mern-client:latest .
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Docker images to Docker Hub
+        run: |
+          docker push mujtaba979/mern-server:latest
+          docker push mujtaba979/mern-client:latest
 
       - name: Deploy to Minikube
         run: |
-          kubectl apply -f k8s/client-deployment.yaml
-          kubectl apply -f k8s/client-service.yaml
-          kubectl apply -f k8s/server-deployment.yaml
-          kubectl apply -f k8s/server-service.yaml
+          kubectl create namespace mern-app --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f k8s/server-deployment.yaml -n mern-app
+          kubectl apply -f k8s/server-service.yaml -n mern-app
+          kubectl apply -f k8s/client-deployment.yaml -n mern-app
+          kubectl apply -f k8s/client-service.yaml -n mern-app
 
-      - name: Wait for deployments to be ready
+      - name: Verify deployment status
         run: |
-          kubectl rollout status deployment/client-deployment -n mern-app
-          kubectl rollout status deployment/server-deployment -n mern-app
-
-      - name: Get service URLs
-        run: |
-          echo "Client service URL:"
-          minikube service client-service -n mern-app --url
-          echo "Server service URL:"
-          minikube service server-service -n mern-app --url
+          kubectl get pods -n mern-app
+          kubectl get services -n mern-app
