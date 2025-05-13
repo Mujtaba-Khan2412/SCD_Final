@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-deployment
+  namespace: mern-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      containers:
+        - name: server
+          image: mern-server:latest
+          imagePullPolicy: Never # Use local image since we're using Minikube
+          env:
+            - name: PORT
+              value: "5000"
+            - name: MONGO_URI
+              value: "mongodb+srv://mujtaba979mk:mujtaba@cluster0.8q8n8.mongodb.net/"
+          ports:
+            - containerPort: 5000

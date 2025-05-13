@@ -1,0 +1,54 @@
+name: Build and Deploy to Minikube
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Start Minikube if not running
+        run: |
+          if ($(minikube status -f '{{.Host}}') -ne "Running") {
+            minikube start
+          }
+
+      - name: Set Docker to use Minikube
+        run: |
+          & minikube -p minikube docker-env | Invoke-Expression
+
+      - name: Build Client Docker Image
+        run: docker build --platform=linux/amd64 -t mern-client:latest ./app/client
+
+      - name: Build Server Docker Image
+        run: docker build --platform=linux/amd64 -t mern-server:latest ./app/server
+
+      - name: Create namespace if it doesn't exist
+        run: |
+          if (-not (kubectl get namespace mern-app --ignore-not-found)) {
+            kubectl create namespace mern-app
+          }
+
+      - name: Deploy to Minikube
+        run: |
+          kubectl apply -f k8s/client-deployment.yaml
+          kubectl apply -f k8s/client-service.yaml
+          kubectl apply -f k8s/server-deployment.yaml
+          kubectl apply -f k8s/server-service.yaml
+
+      - name: Wait for deployments to be ready
+        run: |
+          kubectl rollout status deployment/client-deployment -n mern-app
+          kubectl rollout status deployment/server-deployment -n mern-app
+
+      - name: Get service URLs
+        run: |
+          echo "Client service URL:"
+          minikube service client-service -n mern-app --url
+          echo "Server service URL:"
+          minikube service server-service -n mern-app --url
