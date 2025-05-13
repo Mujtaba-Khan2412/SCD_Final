@@ -13,6 +13,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Debug directory structure
+        run: |
+          echo "Listing repository structure:"
+          dir
+          echo "Checking for app directory:"
+          if (Test-Path -Path "app") { dir app } else { echo "app directory does not exist" }
+          echo "Checking for server directory:"
+          if (Test-Path -Path "server") { echo "server directory exists" } else { echo "server directory not found" }
+
       - name: Set up Docker to use Minikube's environment
         run: |
           echo "Configuring Docker to use Minikube's daemon..."
@@ -20,13 +29,35 @@ jobs:
 
       - name: Build Server Docker image
         run: |
-          cd app/server
-          docker build -t mujtaba979/mern-server:latest .
+          # Check if server is in root directory
+          if (Test-Path -Path "server") {
+            cd server
+            docker build -t mujtaba979/mern-server:latest .
+          # Check if server is in app directory
+          } elseif (Test-Path -Path "app/server") {
+            cd app/server
+            docker build -t mujtaba979/mern-server:latest .
+          # If server directory doesn't exist, build from root
+          } else {
+            echo "Building server from root directory"
+            docker build -t mujtaba979/mern-server:latest -f server.Dockerfile .
+          }
 
       - name: Build Client Docker image
         run: |
-          cd app/client
-          docker build -t mujtaba979/mern-client:latest .
+          # Check if client is in root directory
+          if (Test-Path -Path "client") {
+            cd client
+            docker build -t mujtaba979/mern-client:latest .
+          # Check if client is in app directory
+          } elseif (Test-Path -Path "app/client") {
+            cd app/client
+            docker build -t mujtaba979/mern-client:latest .
+          # If client directory doesn't exist, build from root
+          } else {
+            echo "Building client from root directory"
+            docker build -t mujtaba979/mern-client:latest -f client.Dockerfile .
+          }
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
