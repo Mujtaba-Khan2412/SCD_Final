@@ -10,24 +10,8 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Clean workspace
-        run: |
-          if (Test-Path -Path ".git") {
-            Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
-          }
-
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          clean: false
-          submodules: false
-
-      - name: Debug directory structure
-        run: |
-          echo "Current directory:"
-          pwd
-          echo "Directory contents:"
-          dir
 
       - name: Set up Docker to use Minikube's environment
         run: |
@@ -36,27 +20,13 @@ jobs:
 
       - name: Build Server Docker image
         run: |
-          if (Test-Path -Path "server") {
-            cd server
-            docker build -t mujtaba979/mern-server:latest .
-          } elseif (Test-Path -Path "Dockerfile.server") {
-            docker build -t mujtaba979/mern-server:latest -f Dockerfile.server .
-          } else {
-            echo "ERROR: No server directory or Dockerfile.server found!"
-            exit 1
-          }
+          cd app/server
+          docker build -t mujtaba979/mern-server:latest .
 
       - name: Build Client Docker image
         run: |
-          if (Test-Path -Path "client") {
-            cd client
-            docker build -t mujtaba979/mern-client:latest .
-          } elseif (Test-Path -Path "Dockerfile.client") {
-            docker build -t mujtaba979/mern-client:latest -f Dockerfile.client .
-          } else {
-            echo "ERROR: No client directory or Dockerfile.client found!"
-            exit 1
-          }
+          cd app/client
+          docker build -t mujtaba979/mern-client:latest .
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -69,92 +39,6 @@ jobs:
           docker push mujtaba979/mern-server:latest
           docker push mujtaba979/mern-client:latest
 
-      - name: Create k8s directory if it doesn't exist
-        run: |
-          if (-not (Test-Path -Path "k8s")) {
-            echo "k8s directory doesn't exist, creating sample k8s files..."
-            mkdir -p k8s
-            
-            # Create sample server deployment
-            @'
-            apiVersion: apps/v1
-            kind: Deployment
-            metadata:
-              name: server-deployment
-            spec:
-              replicas: 1
-              selector:
-                matchLabels:
-                  app: mern-server
-              template:
-                metadata:
-                  labels:
-                    app: mern-server
-                spec:
-                  containers:
-                  - name: mern-server
-                    image: mujtaba979/mern-server:latest
-                    imagePullPolicy: Always
-                    ports:
-                    - containerPort: 5000
-            '@ | Out-File -FilePath "k8s/server-deployment.yaml"
-            
-            # Create sample server service
-            @'
-            apiVersion: v1
-            kind: Service
-            metadata:
-              name: server-service
-            spec:
-              selector:
-                app: mern-server
-              ports:
-              - port: 5000
-                targetPort: 5000
-              type: ClusterIP
-            '@ | Out-File -FilePath "k8s/server-service.yaml"
-            
-            # Create sample client deployment
-            @'
-            apiVersion: apps/v1
-            kind: Deployment
-            metadata:
-              name: client-deployment
-            spec:
-              replicas: 1
-              selector:
-                matchLabels:
-                  app: mern-client
-              template:
-                metadata:
-                  labels:
-                    app: mern-client
-                spec:
-                  containers:
-                  - name: mern-client
-                    image: mujtaba979/mern-client:latest
-                    imagePullPolicy: Always
-                    ports:
-                    - containerPort: 80
-            '@ | Out-File -FilePath "k8s/client-deployment.yaml"
-            
-            # Create sample client service
-            @'
-            apiVersion: v1
-            kind: Service
-            metadata:
-              name: client-service
-            spec:
-              selector:
-                app: mern-client
-              ports:
-              - port: 80
-                targetPort: 80
-                nodePort: 30007
-              type: NodePort
-            '@ | Out-File -FilePath "k8s/client-service.yaml"
-          }
-
       - name: Deploy to Minikube
         run: |
           kubectl create namespace mern-app --dry-run=client -o yaml | kubectl apply -f -
@@ -162,8 +46,3 @@ jobs:
           kubectl apply -f k8s/server-service.yaml -n mern-app
           kubectl apply -f k8s/client-deployment.yaml -n mern-app
           kubectl apply -f k8s/client-service.yaml -n mern-app
-
-      - name: Verify deployment status
-        run: |
-          kubectl get pods -n mern-app
-          kubectl get services -n mern-app
