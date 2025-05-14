@@ -8,7 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchPerson } from "../features/globalValues/globalSlice";
 import { toast } from "react-toastify";
 
-const url = "http://localhost:5000/api/v1/people";
+const url = "http://server-service:5000/api/v1/people";
 
 const PersonList = () => {
   const [people, setPeople] = useState([]);
@@ -29,9 +29,7 @@ const PersonList = () => {
 
   const deletePerson = async (id) => {
     try {
-      await axios.delete(
-        `http://server-service.mern-app:5000/api/v1/people/${id}`
-      );
+      await axios.delete(`http://server-service:5000/api/v1/people/${id}`);
       store.dispatch(changeStatusListener());
       toast.success("Person successfully deleted");
     } catch (error) {
@@ -42,7 +40,7 @@ const PersonList = () => {
   const enterUpdateState = async (id) => {
     try {
       const response = await axios(
-        `http://server-service.mern-app:5000/api/v1/people/${id}`
+        `http://server-service:5000/api/v1/people/${id}`
       );
       const data = await response.data;
       dispatch(fetchPerson(data));

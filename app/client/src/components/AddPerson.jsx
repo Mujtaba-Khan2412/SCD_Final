@@ -21,7 +21,7 @@ const AddPerson = ({}) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = "http://server-service.mern-app:5000/api/v1/people";
+    const url = "http://server-service:5000/api/v1/people";
     if (currentUpdatePerson === 0) {
       try {
         const response = await axios.post(url, inputValues);
@@ -34,7 +34,7 @@ const AddPerson = ({}) => {
     } else {
       try {
         const response = await axios.patch(
-          `http://server-service.mern-app:5000/api/v1/people/${currentUpdatePerson}`,
+          `http://server-service:5000/api/v1/people/${currentUpdatePerson}`,
           inputValues
         );
         store.dispatch(changeCurrentUpdatePerson({ id: 0 }));
