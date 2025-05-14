@@ -34,32 +34,14 @@ jobs:
         run: |
           eval $(minikube -p minikube docker-env)
 
-      - name: Build server image with explicit Dockerfile content
+      - name: Build server image
         run: |
           cd ./app/server
-          cat <<EOF > Dockerfile
-FROM node:16
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-EXPOSE 5000
-CMD ["npm", "start"]
-EOF
           docker build -t mujtaba979/mern-server:latest .
 
-      - name: Build client image with explicit Dockerfile content
+      - name: Build client image
         run: |
           cd ./app/client
-          cat <<EOF > Dockerfile
-FROM node:16
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-EXPOSE 3000
-CMD ["npm", "start"]
-EOF
           docker build -t mujtaba979/mern-client:latest .
 
       - name: Login to Docker Hub
