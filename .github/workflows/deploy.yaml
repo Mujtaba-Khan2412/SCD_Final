@@ -1,41 +1,47 @@
 name: Build and Deploy to Minikube
+
 on:
   push:
     branches:
       - master
+
 jobs:
   build-deploy:
     runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Debug - Display current directory and contents
+        shell: pwsh
         run: |
           Write-Host "Current directory: $(Get-Location)"
           Get-ChildItem -Path . -Recurse -Depth 3
-          
+
       - name: Debug - Display server directory contents
+        shell: pwsh
         run: |
           Write-Host "Server directory:"
           Get-ChildItem -Path ./app/server
-          
+
       - name: Debug - Cat Dockerfile content (if exists)
+        shell: pwsh
         run: |
           if (Test-Path ./app/server/Dockerfile) {
             Get-Content ./app/server/Dockerfile
           } else {
             Write-Host "Dockerfile not found"
           }
-          
+
       - name: Set up Docker to use Minikube's environment
+        shell: pwsh
         run: |
           minikube -p minikube docker-env --shell powershell | Invoke-Expression
-          
+
       - name: Build server image with explicit Dockerfile content
-        working-directory: ./app/server
+        shell: pwsh
         run: |
-          # Create Dockerfile if not exists or is empty
+          cd ./app/server
           $dockerfileContent = @"
 FROM node:16
 WORKDIR /app
@@ -43,15 +49,15 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 EXPOSE 5000
-CMD ["npm", "start"]
+CMD ['npm', 'start']
 "@
           Set-Content -Path Dockerfile -Value $dockerfileContent
           docker build -t mujtaba979/mern-server:latest .
-          
+
       - name: Build client image with explicit Dockerfile content
-        working-directory: ./app/client
+        shell: pwsh
         run: |
-          # Create Dockerfile if not exists or is empty
+          cd ./app/client
           $dockerfileContent = @"
 FROM node:16
 WORKDIR /app
@@ -59,23 +65,25 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ['npm', 'start']
 "@
           Set-Content -Path Dockerfile -Value $dockerfileContent
           docker build -t mujtaba979/mern-client:latest .
-          
+
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          
+
       - name: Push Docker images to Docker Hub
+        shell: pwsh
         run: |
           docker push mujtaba979/mern-server:latest
           docker push mujtaba979/mern-client:latest
-          
+
       - name: Deploy to Minikube
+        shell: pwsh
         run: |
           kubectl create namespace mern-app --dry-run=client -o yaml | kubectl apply -f -
           kubectl apply -f k8s/mongodb-deployment.yaml -n mern-app
