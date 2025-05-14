@@ -7,20 +7,20 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mern-server
+      app: server
   template:
     metadata:
       labels:
-        app: mern-server
+        app: server
     spec:
       containers:
-        - name: mern-server
-          image: mujtaba979/mern-server:latest
-          imagePullPolicy: Always
-          env:
-            - name: PORT
-              value: "5000"
-            - name: MONGODB_URI
-              value: "mongodb://mongodb-service:27017/mernapp"
+        - name: server
+          image: mern-server:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 5000
+          env:
+            - name: MONGO_URI
+              value: "mongodb+srv://mujtaba979mk:mujtaba@cluster0.8q8n8.mongodb.net/"
+            - name: PORT
+              value: "5000"

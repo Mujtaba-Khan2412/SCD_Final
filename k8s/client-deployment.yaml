@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: mern-client
-          image: mujtaba979/mern-client:latest
-          imagePullPolicy: Always
+          image: mern-client:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 80
           env:

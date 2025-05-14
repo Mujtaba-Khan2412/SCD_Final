@@ -10,75 +10,20 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Clean workspace first
-        run: |
-          Remove-Item -Path * -Recurse -Force -ErrorAction SilentlyContinue
-
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          submodules: false
-          clean: false
 
       - name: Set up Docker to use Minikube's environment
         run: |
-          echo "Configuring Docker to use Minikube's daemon..."
-          & minikube -p minikube docker-env --shell powershell | Invoke-Expression
-
-      - name: Fix Server Dockerfile path references
-        run: |
-          # Create a temporary fixed Dockerfile for server
-          @"
-FROM node:18-alpine
-
-WORKDIR /app
-
-# Fix the path reference - important change
-COPY ./package*.json ./
-RUN npm install
-
-COPY . .
-
-EXPOSE 5000
-
-CMD ["node", "app.js"]
-"@ | Out-File -FilePath "temp-server.Dockerfile" -Encoding utf8
-
-      - name: Fix Client Dockerfile path references
-        run: |
-          # Create a temporary fixed Dockerfile for client
-          @"
-# Build stage
-FROM node:18-alpine as build
-
-WORKDIR /app
-
-# Fix the path reference - important change
-COPY ./package*.json ./
-RUN npm install
-
-COPY . .
-RUN npm run build
-
-# Production stage
-FROM nginx:alpine
-
-COPY --from=build /app/dist /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
-"@ | Out-File -FilePath "temp-client.Dockerfile" -Encoding utf8
+          minikube -p minikube docker-env --shell powershell | Invoke-Expression
 
       - name: Build Server Docker image
         run: |
-          # Build using the fixed Dockerfile
-          docker build -t mujtaba979/mern-server:latest -f temp-server.Dockerfile ./app/server
+          docker build -t mujtaba979/mern-server:latest ./app/server
 
       - name: Build Client Docker image
         run: |
-          # Build using the fixed Dockerfile
-          docker build -t mujtaba979/mern-client:latest -f temp-client.Dockerfile ./app/client
+          docker build -t mujtaba979/mern-client:latest ./app/client
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -94,6 +39,7 @@ CMD ["nginx", "-g", "daemon off;"]
       - name: Deploy to Minikube
         run: |
           kubectl create namespace mern-app --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f k8s/mongodb-deployment.yaml -n mern-app
           kubectl apply -f k8s/server-deployment.yaml -n mern-app
           kubectl apply -f k8s/server-service.yaml -n mern-app
           kubectl apply -f k8s/client-deployment.yaml -n mern-app
